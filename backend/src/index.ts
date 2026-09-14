@@ -12,6 +12,7 @@ import { publicRoutes } from './routes/public';
 import { analyticsRoutes } from './routes/analytics';
 import { adminRoutes } from './routes/admin';
 import { chatRoutes } from './routes/chat';
+import { apiUsageRoutes } from './routes/api-usage';
 
 const app = new Elysia()
   .use(staticPlugin({
@@ -35,6 +36,7 @@ const app = new Elysia()
       .use(analyticsRoutes)
       .use(adminRoutes)
       .use(chatRoutes)
+      .use(apiUsageRoutes)
   )
   .onError(({ code, error, set }) => {
     console.error('Server error:', error);

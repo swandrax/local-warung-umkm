@@ -36,7 +36,7 @@ export interface AIContext {
 }
 
 export interface AgentAction {
-  type: 'REPLY_INFO' | 'SHOW_PRODUCTS' | 'ORDER_TRACK' | 'ESCALATE_HUMAN' | 'ASK_CLARIFICATION' | 'CUSTOM_ACTION' | string;
+  type: 'REPLY_INFO' | 'SHOW_PRODUCTS' | 'ORDER_TRACK' | 'API_CALL' | 'API_WORKFLOW' | 'ESCALATE_HUMAN' | 'ASK_CLARIFICATION' | 'CUSTOM_ACTION' | string;
   payload?: Record<string, unknown>;
 }
 

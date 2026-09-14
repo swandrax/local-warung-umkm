@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@datastax/astra-db-ts": "^2.3.0",
+    "@neondatabase/neon-js": "^0.7.0-beta",
+    "react-router-dom": "^7.18.3"
+  }
+}
