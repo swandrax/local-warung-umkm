@@ -1,4 +1,9 @@
 {
+  "name": "local-warung-umkm",
+  "scripts": {
+    "test:astra": "bun run backend/src/test_astra.ts",
+    "test:routes": "bun run backend/src/test_api_usage_routes.ts"
+  },
   "dependencies": {
     "@datastax/astra-db-ts": "^2.3.0",
     "@neondatabase/neon-js": "^0.7.0-beta",
