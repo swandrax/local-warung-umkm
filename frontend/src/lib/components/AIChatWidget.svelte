@@ -112,12 +112,70 @@
     }
   }
 
+  let isListening = false;
+  let recognition: any = null;
+
+  function toggleVoiceInput() {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Fitur suara belum didukung di browser ini. Kakak bisa ketik pesan langsung ya 😊');
+      return;
+    }
+
+    if (isListening) {
+      if (recognition) recognition.stop();
+      isListening = false;
+      return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'id-ID';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      isListening = true;
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        inputMessage = transcript;
+        isListening = false;
+        // Automatically send voice query
+        handleSendMessage(transcript);
+      }
+    };
+
+    recognition.onerror = () => {
+      isListening = false;
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      isListening = false;
+    }
+  }
+
+  function getWaOrderUrl(prodName: string, price?: number) {
+    const text = `Halo Mbak Sari / Pengelola Warung, saya mau pesan "${prodName}"${price ? ` (Rp ${price.toLocaleString('id-ID')})` : ''} dari web warung UMKM. Mohon info cara pesan dan pengantarannya ya Kak 🙏`;
+    return `https://wa.me/6281298765432?text=${encodeURIComponent(text)}`;
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   }
+
 </script>
 
 <!-- Floating Launcher Button -->
@@ -164,8 +222,19 @@
                 <div class="action-products">
                   {#each msg.action.payload.products as p}
                     <div class="product-chip">
-                      <span class="prod-name">🛍️ {p.name}</span>
-                      <span class="prod-price">Rp {p.price?.toLocaleString('id-ID')}</span>
+                      <div class="prod-info">
+                        <span class="prod-name">🛍️ {p.name}</span>
+                        <span class="prod-price">Rp {p.price?.toLocaleString('id-ID')}</span>
+                      </div>
+                      <a
+                        href={getWaOrderUrl(p.name, p.price)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="wa-order-btn"
+                        title="Pesan via WhatsApp Resmi Warung"
+                      >
+                        <span class="wa-icon">🟢</span> Pesan WA
+                      </a>
                     </div>
                   {/each}
                 </div>
@@ -214,10 +283,20 @@
         <button on:click={() => handleSendMessage('Mau tanya cara kemitraan konsinyasi kopi')}>🤝 Info Kemitraan</button>
       </div>
 
-      <!-- Input Area -->
+      <!-- Input Area with Voice (Microphone) & Send -->
       <div class="chat-input-area">
+        <button
+          class="mic-btn"
+          class:listening={isListening}
+          on:click={toggleVoiceInput}
+          title={isListening ? 'Mendengarkan... klik untuk selesai' : 'Bicara lewat suara (Mikrofon)'}
+          type="button"
+          aria-label="Input Suara"
+        >
+          {isListening ? '🔴' : '🎙️'}
+        </button>
         <textarea
-          placeholder="Tanya Mbak Sari seputar produk warung..."
+          placeholder={isListening ? 'Mendengarkan suara Kakak... silakan bicara' : 'Tanya Mbak Sari seputar produk warung...'}
           bind:value={inputMessage}
           on:keydown={handleKeydown}
           rows="1"
@@ -234,6 +313,7 @@
     </div>
   {/if}
 </div>
+
 
 
 <style>
@@ -489,11 +569,51 @@
   .product-chip {
     background: #eff6ff;
     border: 1px solid #bfdbfe;
-    border-radius: 0.4rem;
-    padding: 0.4rem 0.6rem;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.65rem;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.8rem;
+  }
+
+  .prod-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .prod-name {
+    font-weight: 600;
+    color: #1e3a8a;
+  }
+
+  .prod-price {
+    font-size: 0.75rem;
+    color: #047857;
+    font-weight: 600;
+  }
+
+  .wa-order-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #25d366;
+    color: white;
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 9999px;
+    box-shadow: 0 2px 5px rgba(37, 211, 102, 0.3);
+    transition: transform 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .wa-order-btn:hover {
+    background: #1eb954;
+    transform: scale(1.03);
   }
 
   .quick-suggestions {
@@ -526,8 +646,40 @@
     background: white;
     border-top: 1px solid #e2e8f0;
     display: flex;
-    gap: 0.5rem;
+    gap: 0.45rem;
     align-items: center;
+  }
+
+  .mic-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .mic-btn:hover {
+    background: #e2e8f0;
+    transform: scale(1.05);
+  }
+
+  .mic-btn.listening {
+    background: #fee2e2;
+    border-color: #ef4444;
+    animation: pulse 1.2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
 
   .chat-input-area textarea {
@@ -555,12 +707,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .send-btn:disabled {
     background: #94a3b8;
     cursor: not-allowed;
   }
+
 
   .typing-indicator {
     display: inline-flex;

@@ -53,6 +53,8 @@
     sunday: { isOpen: false, openTime: '09:00', closeTime: '17:00' }
   };
 
+  let rlhfInsights: any = null;
+
   onMount(async () => {
     try {
       const res = await api.get('/mitra/me');
@@ -69,7 +71,17 @@
     } finally {
       loading = false;
     }
+
+    try {
+      const insightRes = await api.get('/chat/feedback/insights');
+      if (insightRes.data) {
+        rlhfInsights = insightRes.data;
+      }
+    } catch {
+      // ignore
+    }
   });
+
 
   function populateForm(data: any) {
     businessName = data.businessName || '';
@@ -188,8 +200,53 @@
   {#if loading}
     <p>Memuat profil...</p>
   {:else}
+    {#if rlhfInsights}
+      <div class="rlhf-insights-card">
+        <div class="rlhf-header">
+          <div class="rlhf-title-group">
+            <span class="rlhf-icon">📊</span>
+            <div>
+              <h3>Suara Pelanggan & Analitik Asisten AI (RLHF)</h3>
+              <p>Preferensi dan umpan balik langsung dari pengunjung warung online Anda.</p>
+            </div>
+          </div>
+          <div class="satisfaction-badge">
+            <span class="satisfaction-value">{rlhfInsights.satisfactionRatePercent}%</span>
+            <span class="satisfaction-label">Tingkat Kepuasan</span>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-pill positive">
+            <span class="stat-num">👍 {rlhfInsights.positiveFeedbacks}</span>
+            <span class="stat-text">Puas & Terbantu</span>
+          </div>
+          <div class="stat-pill negative">
+            <span class="stat-num">👎 {rlhfInsights.negativeFeedbacks}</span>
+            <span class="stat-text">Perlu Peningkatan</span>
+          </div>
+          <div class="stat-pill total">
+            <span class="stat-num">💬 {rlhfInsights.totalFeedbacks}</span>
+            <span class="stat-text">Total Masukan</span>
+          </div>
+        </div>
+
+        {#if rlhfInsights.topPositiveTokens?.length}
+          <div class="tokens-section">
+            <span class="tokens-label">🔥 Menu / Kata Kunci Paling Disukai Pembeli:</span>
+            <div class="token-tags">
+              {#each rlhfInsights.topPositiveTokens as token}
+                <span class="token-tag">✨ {token}</span>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
     <Card>
       <form on:submit|preventDefault={handleSave}>
+
         <h2>1. Informasi Bisnis</h2>
         <div class="grid-2">
           <Input label="Nama Bisnis / Warung" bind:value={businessName} required />
@@ -383,9 +440,143 @@
   .success-banner { background: #d1fae5; color: #065f46; padding: 1rem; border-radius: 0.375rem; font-weight: 500; }
   .error-banner { background: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: 0.375rem; font-weight: 500; }
 
+  /* RLHF Insights Card Styles */
+  .rlhf-insights-card {
+    background: linear-gradient(135deg, #ffffff, #f0fdf4);
+    border: 1px solid #bbf7d0;
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .rlhf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .rlhf-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .rlhf-icon {
+    font-size: 1.8rem;
+  }
+
+  .rlhf-title-group h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #166534;
+    font-weight: 700;
+  }
+
+  .rlhf-title-group p {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: #4b5563;
+  }
+
+  .satisfaction-badge {
+    background: #15803d;
+    color: white;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(21, 128, 61, 0.2);
+  }
+
+  .satisfaction-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .satisfaction-label {
+    font-size: 0.68rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .stat-pill.positive {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+  }
+
+  .stat-pill.negative {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+  }
+
+  .stat-pill.total {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+  }
+
+  .tokens-section {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding-top: 0.6rem;
+    border-top: 1px dashed #dcfce7;
+  }
+
+  .tokens-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .token-tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .token-tag {
+    background: #ffffff;
+    border: 1px solid #86efac;
+    color: #166534;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
   @media (max-width: 640px) {
     .grid-2 { grid-template-columns: 1fr; }
     .hours-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
     .time-col { justify-content: flex-start; width: 100%; }
+    .rlhf-header { flex-direction: column; align-items: flex-start; }
   }
 </style>
+
