@@ -3,11 +3,13 @@ import type { AIContext, AIResponse } from '../providers';
 export class HandoffAgent {
   async handle(context: AIContext, message: string): Promise<AIResponse> {
     const info = context.tenantInfo;
-    const contact = info?.phone ? `ke WhatsApp/Telepon kami di ${info.phone}` : 'langsung ke meja kasir/layanan pelanggan kami';
+    const contact = info?.phone ? `via WhatsApp di ${info.phone}` : 'langsung ke meja kasir kami';
 
     return {
-      message: `Kami mohon maaf atas ketidaknyamanan Anda. Percakapan ini telah diteruskan. Anda dapat menghubungi pengelola ${info?.businessName || 'toko'} ${contact} untuk penanganan segera oleh manusia.`,
+      message: `Aduh maaf sekali atas kendala yang dialami ya Kak 🙏 Untuk penanganan yang lebih cepat dan tuntas, yuk langsung hubungi pemilik ${info?.businessName || 'warung kami'} ${contact}. Kami siap bantu dengan sepenuh hati! 😊`,
       tokensUsed: 0,
     };
+
+
   }
 }

@@ -8,6 +8,8 @@ import { workerPool } from '../infrastructure/queue/worker-pool';
 import { tenantContextService } from '../ai/context/tenant-context';
 import { AgentRouter } from '../ai/router';
 import { createAIProvider, type Message } from '../ai/providers';
+import { WarungGuardrails } from '../ai/guardrails';
+import { rlhfService } from '../ai/rlhf';
 
 // Singleton router initialized with active AI Provider (Groq or vLLM)
 const activeProvider = createAIProvider();
@@ -47,7 +49,24 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         };
       }
 
-      // 2. Fetch Tenant Business Context (Valkey Cache-first)
+      // 2. Input Guardrail: Content Safety, Toxicity & Prompt Injection Protection
+      const guardrailResult = WarungGuardrails.evaluateInput(message);
+      if (!guardrailResult.passed) {
+        return {
+          success: true,
+          data: {
+            conversationId: existingConvId || crypto.randomUUID(),
+            message: guardrailResult.friendlyFallback,
+            thinking: `Guardrail mengalihkan percakapan secara santun karena mendeteksi: ${guardrailResult.reason}`,
+            action: { type: 'REPLY_INFO' },
+            agentUsed: 'GUARDRAILS_SAFETY',
+            tokensUsed: 0,
+            latencyMs: 2,
+          },
+        };
+      }
+
+      // 3. Fetch Tenant Business Context (Redis Cache-first)
       const tenantInfo = await tenantContextService.getOrFetchTenantContext(tenantId);
       if (!tenantInfo) {
         set.status = 404;
@@ -64,7 +83,7 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
       const requestId = crypto.randomUUID();
       const startTime = Date.now();
 
-      // 3. Retrieve conversation history for context windowing (last 6 messages)
+      // 4. Retrieve conversation history for context windowing (last 6 messages)
       let windowedHistory: Message[] = [];
       try {
         if (existingConvId) {
@@ -80,7 +99,6 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
             content: r.content,
           }));
         } else {
-          // Create new conversation in DB
           await db.insert(conversations).values({
             id: conversationId,
             tenantId,
@@ -91,7 +109,7 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         console.warn('[ChatRoute] DB conversation fetch fallback:', err);
       }
 
-      // 4. Save user message to DB asynchronously
+      // 5. Save user message to DB asynchronously
       db.insert(messages).values({
         id: crypto.randomUUID(),
         conversationId,
@@ -99,7 +117,7 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         content: message,
       }).catch(() => {});
 
-      // 5. Execute via Priority Queue Worker Pool (with Backpressure Protection)
+      // 6. Execute via Priority Queue Worker Pool (with Backpressure Protection)
       const aiContext = {
         tenantId,
         conversationId,
@@ -127,14 +145,17 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         throw err;
       }
 
+      // 7. Output Guardrail: Check for system leaks and polish tone
+      const outputCheck = WarungGuardrails.evaluateOutput(result.message);
+      const finalMessage = outputCheck.polishedText;
       const latencyMs = Date.now() - startTime;
 
-      // 6. Save assistant response & log telemetry
+      // 8. Save assistant response & log telemetry
       db.insert(messages).values({
         id: crypto.randomUUID(),
         conversationId,
         role: 'assistant',
-        content: result.message,
+        content: finalMessage,
         tokensUsed: result.tokensUsed || 0,
       }).catch(() => {});
 
@@ -147,14 +168,14 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         status: 'SUCCESS',
       }).catch(() => {});
 
-      // 7. Trigger background summarization in low-priority worker queue
+      // 9. Trigger background summarization in low-priority worker queue
       workerPool.enqueueSummarization(conversationId, tenantId).catch(() => {});
 
       return {
         success: true,
         data: {
           conversationId,
-          message: result.message,
+          message: finalMessage,
           thinking: result.thinking,
           action: result.action,
           agentUsed: result.agentUsed,
@@ -171,4 +192,59 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         imageUrl: t.Optional(t.String()),
       }),
     }
+  )
+  // RLHF Feedback Endpoint: Users rate answers (👍 / 👎) to teach the model public preferences
+  .post(
+    '/feedback',
+    async ({ body }) => {
+      const { conversationId, tenantId, userMessage, assistantMessage, score, category, feedbackText } = body;
+
+      const res = await rlhfService.recordFeedback({
+        conversationId,
+        tenantId,
+        userMessage,
+        assistantMessage,
+        score: score > 0 ? 1 : -1,
+        category: category as any,
+        feedbackText,
+      });
+
+      return {
+        success: true,
+        data: {
+          id: res.id,
+          message: score > 0 
+            ? 'Terima kasih banyak atas dukungannya, Kak! Senang bisa membantu 😊🙏' 
+            : 'Terima kasih atas masukannya, Kak. Ini akan membantu kami melayani lebih ramah dan tepat lagi ke depannya 🙏',
+        },
+      };
+    },
+    {
+      body: t.Object({
+        conversationId: t.Optional(t.String()),
+        tenantId: t.String({ minLength: 1 }),
+        userMessage: t.String({ minLength: 1 }),
+        assistantMessage: t.String({ minLength: 1 }),
+        score: t.Numeric(),
+        category: t.Optional(t.String()),
+        feedbackText: t.Optional(t.String()),
+      }),
+    }
+  )
+  // RLHF Insights: Public preference and satisfaction metrics
+  .get(
+    '/feedback/insights',
+    async ({ query }) => {
+      const insights = await rlhfService.getPreferenceInsights(query?.tenantId);
+      return {
+        success: true,
+        data: insights,
+      };
+    },
+    {
+      query: t.Optional(t.Object({
+        tenantId: t.Optional(t.String()),
+      })),
+    }
   );
+

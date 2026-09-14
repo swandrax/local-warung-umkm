@@ -14,9 +14,10 @@ export class ProductAgent {
       if (matched.length === 1) {
         const item = matched[0];
         return {
-          message: `Produk "${item.name}" tersedia dengan harga Rp ${item.price.toLocaleString('id-ID')} (Sisa stok: ${item.stock}). ${item.description || ''}`,
+          message: `Wah pas banget Kak! Menu "${item.name}" tersedia di warung kami dengan harga hemat Rp ${item.price.toLocaleString('id-ID')} (stok siap: ${item.stock} unit). ${item.description || ''} Mau disiapkan berapa porsi nih Kak? 😊☕`,
           tokensUsed: 0,
         };
+
       }
     }
 

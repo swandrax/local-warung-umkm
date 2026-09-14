@@ -161,3 +161,22 @@ export const agentLogs = pgTable('agent_logs', {
   status: text('status').notNull(), // SUCCESS, ERROR
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const rlhfFeedback = pgTable('rlhf_feedback', {
+  id: text('id').primaryKey(),
+  conversationId: text('conversation_id'),
+  tenantId: text('tenant_id').notNull(),
+  userMessage: text('user_message').notNull(),
+  assistantMessage: text('assistant_message').notNull(),
+  score: integer('score').notNull(), // +1 (helpful), -1 (unhelpful)
+  category: text('category'), // FRIENDLINESS, ACCURACY, RELEVANCE, ETC.
+  feedbackText: text('feedback_text'),
+  userTokens: text('user_tokens'), // JSON array of tokenized user words
+  userTokenCount: integer('user_token_count').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('rlhf_tenant_idx').on(table.tenantId),
+  index('rlhf_score_idx').on(table.score),
+  index('rlhf_created_idx').on(table.createdAt)
+]);
+

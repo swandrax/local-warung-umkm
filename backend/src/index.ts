@@ -51,7 +51,11 @@ const app = new Elysia()
     }
     set.status = 500;
     return { success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: 'An internal server error occurred' } };
-  })
-  .listen(3000);
+  });
 
-console.log(`Backend is running at ${app.server?.hostname}:${app.server?.port}`);
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+app.listen(PORT);
+
+console.log(`Backend is running at http://${app.server?.hostname || 'localhost'}:${app.server?.port}`);
+
+

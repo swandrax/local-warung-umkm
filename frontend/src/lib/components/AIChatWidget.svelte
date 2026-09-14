@@ -5,6 +5,8 @@
   let isOpen = false;
   let inputMessage = '';
   let isLoading = false;
+  let feedbackStatus: Record<number, { score: number; text: string }> = {};
+
   let messages: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -14,7 +16,7 @@
   }> = [
     {
       role: 'assistant',
-      content: 'Halo! Saya Asisten AI Warung UMKM bertenaga Groq LPU. Ada yang bisa saya bantu terkait produk, rekomendasi warung lokal, atau integrasi API proyek?',
+      content: 'Halo Kak! Selamat datang di Warung UMKM Kami 😊 Ada yang bisa Mbak Sari bantu hari ini? Mau cari kopi seduh nikmat, roti bakar, belanja sembako murah, atau info jam buka warung? Tanyakan saja ya Kak!',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ];
@@ -44,9 +46,9 @@
     scrollToBottom();
 
     try {
-      // Send to active backend chat route
+      // Send to active backend chat route on port 3001
       const res = await api.post('/chat', {
-        tenantId: 'mitra_kopi_madura_01', // Default demo warung
+        tenantId: 'mitra_kopi_madura_01', // Default warung demo
         message: text,
       });
 
@@ -69,13 +71,44 @@
         ...messages,
         {
           role: 'assistant',
-          content: `Maaf, terjadi kendala saat menghubungi AI: ${err.message || 'Koneksi gagal'}`,
+          content: `Aduh maaf ya Kak, sambungan ke warung kami sedang sibuk: ${err.message || 'Koneksi belum terhubung'}. Mohon coba lagi beberapa saat ya Kak 🙏`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ];
     } finally {
       isLoading = false;
       scrollToBottom();
+    }
+  }
+
+  async function sendFeedback(msgIndex: number, score: 1 | -1) {
+    if (feedbackStatus[msgIndex]) return;
+
+    const assistantMsg = messages[msgIndex]?.content || '';
+    // Find previous user message
+    let userMsg = 'Halo';
+    for (let i = msgIndex - 1; i >= 0; i--) {
+      if (messages[i]?.role === 'user') {
+        userMsg = messages[i].content;
+        break;
+      }
+    }
+
+    feedbackStatus[msgIndex] = {
+      score,
+      text: score > 0 ? 'Terima kasih dukungannya! 🙏' : 'Terima kasih atas masukannya 🙏',
+    };
+
+    try {
+      await api.post('/chat/feedback', {
+        tenantId: 'mitra_kopi_madura_01',
+        userMessage: userMsg,
+        assistantMessage: assistantMsg,
+        score,
+        category: 'FRIENDLINESS',
+      });
+    } catch (e) {
+      console.warn('Feedback sent locally', e);
     }
   }
 
@@ -91,8 +124,8 @@
 <div class="chat-widget-wrapper">
   {#if !isOpen}
     <button class="chat-launcher" on:click={() => { isOpen = true; scrollToBottom(); }} aria-label="Buka Chat AI">
-      <span class="launcher-icon">✨</span>
-      <span class="launcher-text">Tanya AI Warung</span>
+      <span class="launcher-icon">👩‍🌾</span>
+      <span class="launcher-text">Tanya Mbak Sari</span>
       <span class="live-dot"></span>
     </button>
   {/if}
@@ -102,10 +135,10 @@
     <div class="chat-window">
       <div class="chat-header">
         <div class="header-left">
-          <div class="avatar-badge">🤖</div>
+          <div class="avatar-badge">👩‍🌾</div>
           <div>
-            <h3 class="header-title">Asisten AI Warung UMKM</h3>
-            <span class="header-sub">Groq LPU • Penalaran Kognitif Live</span>
+            <h3 class="header-title">Mbak Sari • Asisten Warung UMKM</h3>
+            <span class="header-sub">Siap Melayani Sepenuh Hati • 🟢 Online</span>
           </div>
         </div>
         <button class="close-btn" on:click={() => (isOpen = false)} aria-label="Tutup Chat">✕</button>
@@ -113,13 +146,13 @@
 
       <!-- Messages Body -->
       <div class="chat-messages" bind:this={chatContainer}>
-        {#each messages as msg}
+        {#each messages as msg, i}
           <div class={`message-row ${msg.role}`}>
             <div class="message-bubble">
               {#if msg.thinking}
                 <details class="thinking-accordion">
                   <summary class="thinking-summary">
-                    <span class="brain-icon">🧠</span> Alur Penalaran AI (Thinking)
+                    <span class="brain-icon">💡</span> Catatan Penalaran Asisten
                   </summary>
                   <p class="thinking-text">{msg.thinking}</p>
                 </details>
@@ -138,6 +171,23 @@
                 </div>
               {/if}
 
+              <!-- RLHF Human Feedback Buttons (for assistant responses) -->
+              {#if msg.role === 'assistant'}
+                <div class="rlhf-row">
+                  {#if feedbackStatus[i]}
+                    <span class="rlhf-thanks">✨ {feedbackStatus[i].text}</span>
+                  {:else}
+                    <span class="rlhf-prompt">Apakah jawaban ini membantu?</span>
+                    <button class="rlhf-btn thumbs-up" on:click={() => sendFeedback(i, 1)} title="Membantu & Ramah">
+                      👍 Ya
+                    </button>
+                    <button class="rlhf-btn thumbs-down" on:click={() => sendFeedback(i, -1)} title="Kurang Pas">
+                      👎 Kurang
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+
               <span class="message-time">{msg.time}</span>
             </div>
           </div>
@@ -149,7 +199,7 @@
               <div class="typing-indicator">
                 <span></span><span></span><span></span>
               </div>
-              <span class="loading-label">Sedang menalar dengan Groq...</span>
+              <span class="loading-label">Mbak Sari sedang menyiapkan jawaban ramah...</span>
             </div>
           </div>
         {/if}
@@ -157,15 +207,17 @@
 
       <!-- Quick Suggestion Chips -->
       <div class="quick-suggestions">
-        <button on:click={() => handleSendMessage('Menu kopi dan roti bakar terlaris apa saja?')}>☕ Menu Kopi</button>
-        <button on:click={() => handleSendMessage('Buka jam berapa warung ini?')}>⏰ Jam Buka</button>
-        <button on:click={() => handleSendMessage('Bagaimana cara mendaftar jadi mitra warung?')}>🏪 Buka Toko</button>
+        <button on:click={() => handleSendMessage('Menu kopi dan roti bakar paling enak apa saja?')}>☕ Menu Kopi & Roti</button>
+        <button on:click={() => handleSendMessage('Buka jam berapa warungnya?')}>⏰ Jam Buka</button>
+        <button on:click={() => handleSendMessage('Alamat warungnya di mana ya?')}>📍 Lokasi Toko</button>
+        <button on:click={() => handleSendMessage('Ada sembako beras atau minyak murah?')}>🌾 Belanja Sembako</button>
+        <button on:click={() => handleSendMessage('Mau tanya cara kemitraan konsinyasi kopi')}>🤝 Info Kemitraan</button>
       </div>
 
       <!-- Input Area -->
       <div class="chat-input-area">
         <textarea
-          placeholder="Ketik pertanyaan untuk AI..."
+          placeholder="Tanya Mbak Sari seputar produk warung..."
           bind:value={inputMessage}
           on:keydown={handleKeydown}
           rows="1"
@@ -182,6 +234,7 @@
     </div>
   {/if}
 </div>
+
 
 <style>
   .chat-widget-wrapper {
@@ -378,6 +431,60 @@
     flex-direction: column;
     gap: 0.35rem;
   }
+
+  .rlhf-row {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px dashed rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+  }
+
+  .rlhf-prompt {
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .rlhf-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 9999px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: #334155;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .rlhf-btn:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+  }
+
+  .rlhf-btn.thumbs-up:hover {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #15803d;
+  }
+
+  .rlhf-btn.thumbs-down:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .rlhf-thanks {
+    color: #16a34a;
+    font-weight: 600;
+    font-size: 0.72rem;
+  }
+
 
   .product-chip {
     background: #eff6ff;

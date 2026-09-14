@@ -10,8 +10,9 @@ export class OrderAgent {
 
     // Fast-path guidance for local UMKM orders
     return {
-      message: `Untuk pengecekan status pesanan atau pemesanan langsung di ${info?.businessName || 'toko kami'}, silakan kirim nomor nota atau bukti transaksi${phone ? ` via WhatsApp di ${phone}` : ''}. Staf kami akan segera membantu Anda.`,
+      message: `Siap Kak! Untuk cek nota belanja atau konfirmasi pesanan di ${info?.businessName || 'warung kami'}, Kakak cukup sebutkan nomor nota atau kirim bukti fotonya${phone ? ` ke WhatsApp kami di ${phone}` : ''} ya. Tim kami langsung bantu cek dengan senang hati! 😊📦`,
       tokensUsed: 0,
     };
+
   }
 }

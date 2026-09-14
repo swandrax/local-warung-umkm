@@ -79,7 +79,8 @@
     formData.append('image', file);
 
     try {
-      const res = await fetch('http://localhost:3000/upload', {
+      const uploadUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/api$/, '') + '/upload';
+      const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${document.cookie.split('auth=')[1]}`
