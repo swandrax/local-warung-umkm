@@ -6,10 +6,10 @@ import { eq, and, desc, asc, like, or, sql, gte, lte } from 'drizzle-orm';
 /**
  * Calculates store open/closed status based on JSON operating hours and timezone
  */
-export function calculateMitraOpenStatus(operatingHoursStr: string | null | undefined, timezone = 'Asia/Jakarta'): 'OPEN' | 'CLOSED' | 'UNKNOWN' {
-  if (!operatingHoursStr) return 'UNKNOWN';
+export function calculateMitraOpenStatus(operatingHoursRaw: any, timezone = 'Asia/Jakarta'): 'OPEN' | 'CLOSED' | 'UNKNOWN' {
+  if (!operatingHoursRaw) return 'UNKNOWN';
   try {
-    const hours = JSON.parse(operatingHoursStr);
+    const hours = typeof operatingHoursRaw === 'string' ? JSON.parse(operatingHoursRaw) : operatingHoursRaw;
     const now = new Date();
     const options: Intl.DateTimeFormatOptions = { 
       timeZone: timezone || 'Asia/Jakarta', 
@@ -49,7 +49,9 @@ function serializeProduct(p: any, mitraMap?: Map<string, any>) {
   const mitra = mitraMap?.get(p.mitraId);
   let galleryUrls: string[] = [];
   try {
-    if (p.gallery) galleryUrls = JSON.parse(p.gallery);
+    if (p.gallery) {
+      galleryUrls = Array.isArray(p.gallery) ? p.gallery : (typeof p.gallery === 'string' ? JSON.parse(p.gallery) : []);
+    }
   } catch {}
 
   return {
@@ -350,7 +352,9 @@ export const publicRoutes = new Elysia({ prefix: '/public' })
     // Parse operating hours
     let parsedHours = null;
     try {
-      if (mitra.operatingHours) parsedHours = JSON.parse(mitra.operatingHours);
+      if (mitra.operatingHours) {
+        parsedHours = typeof mitra.operatingHours === 'string' ? JSON.parse(mitra.operatingHours) : mitra.operatingHours;
+      }
     } catch {}
 
     const operatingStatus = calculateMitraOpenStatus(mitra.operatingHours, mitra.timezone || 'Asia/Jakarta');
@@ -434,7 +438,9 @@ export const publicRoutes = new Elysia({ prefix: '/public' })
     const data = rawPartnerships.map(p => {
       let benefitsList: string[] = [];
       try {
-        if (p.benefits) benefitsList = JSON.parse(p.benefits);
+        if (p.benefits) {
+          benefitsList = Array.isArray(p.benefits) ? p.benefits : (typeof p.benefits === 'string' ? JSON.parse(p.benefits) : []);
+        }
       } catch {}
 
       const partner = partnerMap.get(p.partnerId);
@@ -498,7 +504,9 @@ export const publicRoutes = new Elysia({ prefix: '/public' })
 
     let benefitsList: string[] = [];
     try {
-      if (partnership.benefits) benefitsList = JSON.parse(partnership.benefits);
+      if (partnership.benefits) {
+        benefitsList = Array.isArray(partnership.benefits) ? partnership.benefits : (typeof partnership.benefits === 'string' ? JSON.parse(partnership.benefits) : []);
+      }
     } catch {}
 
     return {

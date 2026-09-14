@@ -3,6 +3,7 @@ import { db } from '../db';
 import { products, mitraProfiles, auditLogs } from '../db/schema';
 import { eq, and, ilike } from 'drizzle-orm';
 import { authPlugin } from '../middleware/auth';
+import { tenantContextService } from '../ai/context/tenant-context';
 
 export const productRoutes = new Elysia({ prefix: '/products' })
   .use(authPlugin)
@@ -73,6 +74,9 @@ export const productRoutes = new Elysia({ prefix: '/products' })
       timestamp: new Date(),
     });
 
+    // Invalidate AI Context Cache for this tenant
+    await tenantContextService.invalidateTenant(mitra.id);
+
     return { success: true, data: newProduct };
   }, {
     body: t.Object({
@@ -118,6 +122,9 @@ export const productRoutes = new Elysia({ prefix: '/products' })
       timestamp: new Date(),
     });
 
+    // Invalidate AI Context Cache for this tenant
+    await tenantContextService.invalidateTenant(product.mitraId);
+
     return { success: true, data: updated };
   }, {
     body: t.Object({
@@ -154,6 +161,9 @@ export const productRoutes = new Elysia({ prefix: '/products' })
       resourceId: id,
       timestamp: new Date(),
     });
+
+    // Invalidate AI Context Cache for this tenant
+    await tenantContextService.invalidateTenant(product.mitraId);
 
     return { success: true, data: null };
   });

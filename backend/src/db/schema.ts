@@ -1,15 +1,15 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { pgTable, text, integer, timestamp, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey(), // crypto.randomUUID()
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   role: text('role').notNull().default('USER'), // ADMIN, USER, MITRA
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const profiles = sqliteTable('profiles', {
+export const profiles = pgTable('profiles', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
@@ -18,11 +18,11 @@ export const profiles = sqliteTable('profiles', {
   bio: text('bio'),
   address: text('address'),
   city: text('city'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const mitraProfiles = sqliteTable('mitra_profiles', {
+export const mitraProfiles = pgTable('mitra_profiles', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   businessName: text('business_name').notNull(),
@@ -38,15 +38,15 @@ export const mitraProfiles = sqliteTable('mitra_profiles', {
   category: text('category'),
   contactLabel: text('contact_label'),
   contactUrl: text('contact_url'),
-  operatingHours: text('operating_hours'), // JSON string: { monday: { isOpen: boolean, openTime: "08:00", closeTime: "17:00" }, ... }
+  operatingHours: jsonb('operating_hours'),
   timezone: text('timezone').default('Asia/Jakarta'),
-  isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
-  status: text('status').notNull().default('PENDING'), // DRAFT, PENDING, PUBLISHED, UNPUBLISHED, ARCHIVED
+  isPublic: boolean('is_public').notNull().default(false),
+  status: text('status').notNull().default('PENDING'),
   moderationReason: text('moderation_reason'),
   moderatedBy: text('moderated_by'),
-  moderatedAt: integer('moderated_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  moderatedAt: timestamp('moderated_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => [
   index('mitra_status_idx').on(table.status),
   index('mitra_public_idx').on(table.isPublic),
@@ -54,7 +54,7 @@ export const mitraProfiles = sqliteTable('mitra_profiles', {
   index('mitra_created_at_idx').on(table.createdAt)
 ]);
 
-export const products = sqliteTable('products', {
+export const products = pgTable('products', {
   id: text('id').primaryKey(),
   mitraId: text('mitra_id').notNull().references(() => mitraProfiles.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
@@ -63,14 +63,14 @@ export const products = sqliteTable('products', {
   stock: integer('stock').notNull().default(0),
   category: text('category'),
   image: text('image'),
-  gallery: text('gallery'), // JSON array of image URLs
-  isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(true),
-  status: text('status').notNull().default('PUBLISHED'), // DRAFT, PENDING, PUBLISHED, UNPUBLISHED, ARCHIVED
+  gallery: jsonb('gallery'),
+  isPublic: boolean('is_public').notNull().default(true),
+  status: text('status').notNull().default('PUBLISHED'),
   moderationReason: text('moderation_reason'),
   moderatedBy: text('moderated_by'),
-  moderatedAt: integer('moderated_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  moderatedAt: timestamp('moderated_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => [
   index('product_mitra_idx').on(table.mitraId),
   index('product_status_idx').on(table.status),
@@ -79,7 +79,7 @@ export const products = sqliteTable('products', {
   index('product_created_at_idx').on(table.createdAt)
 ]);
 
-export const partnerships = sqliteTable('partnerships', {
+export const partnerships = pgTable('partnerships', {
   id: text('id').primaryKey(),
   requesterId: text('requester_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   partnerId: text('partner_id').notNull().references(() => mitraProfiles.id, { onDelete: 'cascade' }),
@@ -87,42 +87,77 @@ export const partnerships = sqliteTable('partnerships', {
   description: text('description'),
   shortDescription: text('short_description'),
   image: text('image'),
-  benefits: text('benefits'), // JSON array of strings
+  benefits: jsonb('benefits'),
   contactLabel: text('contact_label'),
   contactUrl: text('contact_url'),
-  isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
-  status: text('status').notNull().default('PENDING'), // DRAFT, PENDING, PUBLISHED, UNPUBLISHED, ARCHIVED
+  isPublic: boolean('is_public').notNull().default(false),
+  status: text('status').notNull().default('PENDING'),
   moderationReason: text('moderation_reason'),
   moderatedBy: text('moderated_by'),
-  moderatedAt: integer('moderated_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  moderatedAt: timestamp('moderated_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (table) => [
   index('partnership_status_idx').on(table.status),
   index('partnership_public_idx').on(table.isPublic),
   index('partnership_created_at_idx').on(table.createdAt)
 ]);
 
-export const auditLogs = sqliteTable('audit_logs', {
+export const auditLogs = pgTable('audit_logs', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
   action: text('action').notNull(),
   resource: text('resource').notNull(),
   resourceId: text('resource_id'),
-  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  metadata: text('metadata'), // JSON stringified
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  metadata: jsonb('metadata'),
 });
 
-export const analyticsEvents = sqliteTable('analytics_events', {
+export const analyticsEvents = pgTable('analytics_events', {
   id: text('id').primaryKey(),
-  event: text('event').notNull(), // product_view, mitra_view, partnership_view, search, contact_click, cta_click
-  resourceType: text('resource_type'), // PRODUCT, MITRA, PARTNERSHIP, GENERAL
+  event: text('event').notNull(),
+  resourceType: text('resource_type'),
   resourceId: text('resource_id'),
   sessionId: text('session_id'),
-  metadata: text('metadata'), // JSON stringified
-  timestamp: integer('timestamp', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  metadata: jsonb('metadata'),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
 }, (table) => [
   index('analytics_event_idx').on(table.event),
   index('analytics_resource_idx').on(table.resourceType, table.resourceId),
   index('analytics_timestamp_idx').on(table.timestamp)
 ]);
+
+// --- New Tables for AI Architecture ---
+
+export const conversations = pgTable('conversations', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => mitraProfiles.id, { onDelete: 'cascade' }),
+  userId: text('user_id'), // optional if guest
+  status: text('status').notNull().default('ACTIVE'), // ACTIVE, RESOLVED, HANDOFF
+  summary: text('summary'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (table) => [
+  index('conversation_tenant_idx').on(table.tenantId)
+]);
+
+export const messages = pgTable('messages', {
+  id: text('id').primaryKey(),
+  conversationId: text('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(), // user, assistant, system, tool
+  content: text('content').notNull(),
+  tokensUsed: integer('tokens_used').default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('message_conversation_idx').on(table.conversationId)
+]);
+
+export const agentLogs = pgTable('agent_logs', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull().references(() => mitraProfiles.id, { onDelete: 'cascade' }),
+  requestId: text('request_id').notNull(),
+  agentType: text('agent_type').notNull(), // ROUTER, FAQ, PRODUCT, etc.
+  latencyMs: integer('latency_ms').notNull(),
+  status: text('status').notNull(), // SUCCESS, ERROR
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
