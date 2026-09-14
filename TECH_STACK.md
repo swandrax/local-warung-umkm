@@ -31,21 +31,24 @@ Dokumen ini membedah secara komprehensif pemilihan tumpukan teknologi (*technolo
 │  TypeBox Schema Validation + JWT Middleware + Audit Log Interceptor         │
 │  LocalStorageProvider with Magic Bytes Binary Verification                  │
 └──────────────────────────────────────┬──────────────────────────────────────┘
-                                       │ Type-Safe SQL (Prepared Statements)
+                                       │ Type-Safe SQL (Prepared Statements) & Vector Search
 ┌──────────────────────────────────────▼──────────────────────────────────────┐
 │                              PERSISTENCE LAYER                              │
 │  Drizzle ORM (Zero-overhead Query Builder & Schema Definition)              │
-│  SQLite 3 (Embedded relational database engine)                             │
+│  Neon PostgreSQL (Serverless Connection Pooling, Live Cloud Database)       │
+│  DataStax Astra DB (Vector Database & Semantic Embedding Store)             │
 │  Local Disk Storage (UUID-based image asset pipeline)                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Lapisan Sistem | Teknologi Inti | Alternatif Tradisional | Alasan Pemilihan Kunci |
 |---|---|---|---|
-| **Runtime Backend** | [Bun](https://bun.sh/) | Node.js / Deno | Waktu booting instan (sub-10ms), native TypeScript, I/O biner cepat, built-in SQLite & password hashing. |
+| **Runtime Backend** | [Bun](https://bun.sh/) | Node.js / Deno | Waktu booting instan (sub-10ms), native TypeScript, I/O biner cepat, built-in password hashing. |
 | **Framework Server** | [ElysiaJS](https://elysiajs.com/) | Express / Fastify / NestJS | Throughput HTTP sangat tinggi (hingga 3-4x Express), integrasi type-safety end-to-end via TypeBox. |
 | **ORM / Data Layer** | [Drizzle ORM](https://orm.drizzle.team/) | Prisma / TypeORM | Mendekati SQL murni, ukuran paket mini (*zero-dependency runtime*), tanpa proses background engine berat. |
-| **Basis Data Relasional** | SQLite 3 | PostgreSQL / MySQL | *Zero-configuration*, operasional tanpa server database terpisah, hemat RAM, pencadangan satu berkas (`sqlite.db`). |
+| **Basis Data Relasional** | [Neon PostgreSQL](https://neon.tech/) | SQLite / MySQL | Serverless transaction pooler, auto-suspend, integrasi Neon Auth JWT, branching CI/CD. |
+| **Basis Data Vektor / AI** | [DataStax Astra DB](https://astra.datastax.com/) | Pinecone / Qdrant | Vector embedding 1536-dim, cosine similarity search, serverless AWS Data API. |
+| **AI Inference Provider** | [Groq Cloud](https://groq.com/) | OpenAI / Anthropic | LPU ultra-low latency inference (~150-200ms per token output), model `openai/gpt-oss-120b`. |
 | **Framework Antarmuka** | [Svelte 5](https://svelte.dev/) | React / Vue / Angular | Tidak menggunakan Virtual DOM, kompilasi langsung ke Vanilla JS, reaktivitas granular via *runes*, ukuran bundle sangat kecil. |
 | **Build Tooling** | [Vite](https://vitejs.dev/) | Webpack / Rollup murni | Hot Module Replacement (HMR) berbasis ES Module asli, waktu *cold start* pembangunan di bawah 300ms. |
 | **Router Klien** | `svelte-routing` | SvelteKit / Page.js | Declarative history routing ringan yang cocok untuk integrasi SPA statis yang di-host di PWA. |

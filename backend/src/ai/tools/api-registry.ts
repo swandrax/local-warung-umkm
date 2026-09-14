@@ -459,6 +459,34 @@ export const API_ROUTE_REGISTRY: ApiRouteDefinition[] = [
     ],
     tags: ['api usage', 'routes', 'introspection', 'docs'],
   },
+  {
+    id: 'public_vector_search',
+    path: '/api/public/vector-search',
+    method: 'POST',
+    category: 'PUBLIC',
+    access: 'PUBLIC',
+    title: 'Pencarian Semantik & Kemiripan Vektor (DataStax Astra DB)',
+    description: 'Melakukan pencarian semantik warung dan produk berbasis vektor embedding (1536-dim, cosine similarity) atau filter metadata di DataStax Astra DB.',
+    requestBody: {
+      vector: [0.01, 0.02, 0.85, '... (1536 float elements)'],
+      filter: { city: 'Jakarta Barat' },
+      limit: 5,
+    },
+    responseSample: {
+      success: true,
+      source: 'AstraDB-Vector-Search',
+      data: [
+        {
+          id: 'sample-warung-kopi-01',
+          name: 'Warung Kopi Madura Berkah',
+          category: 'Warung Kopi & Makanan Ringan',
+          city: 'Jakarta Barat',
+          similarityScore: 0.9984,
+        },
+      ],
+    },
+    tags: ['astra', 'vector', 'semantic search', 'embedding', 'cosine'],
+  },
 ];
 
 /**

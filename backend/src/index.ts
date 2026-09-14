@@ -13,6 +13,7 @@ import { analyticsRoutes } from './routes/analytics';
 import { adminRoutes } from './routes/admin';
 import { chatRoutes } from './routes/chat';
 import { apiUsageRoutes } from './routes/api-usage';
+import { vectorSearchRoutes } from './routes/vector-search';
 
 const app = new Elysia()
   .use(staticPlugin({
@@ -37,6 +38,7 @@ const app = new Elysia()
       .use(adminRoutes)
       .use(chatRoutes)
       .use(apiUsageRoutes)
+      .use(vectorSearchRoutes)
   )
   .onError(({ code, error, set }) => {
     console.error('Server error:', error);
