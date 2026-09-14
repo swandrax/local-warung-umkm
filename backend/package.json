@@ -3,6 +3,8 @@
   "version": "1.0.50",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:astra": "bun run src/test_astra.ts",
+    "test:routes": "bun run src/test_api_usage_routes.ts",
     "dev": "bun run --watch src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",

@@ -1,6 +1,8 @@
 {
   "name": "local-warung-umkm",
   "scripts": {
+    "dev:backend": "bun --cwd backend dev",
+    "dev:frontend": "bun --cwd frontend dev",
     "test:astra": "bun run backend/src/test_astra.ts",
     "test:routes": "bun run backend/src/test_api_usage_routes.ts"
   },
