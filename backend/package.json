@@ -9,6 +9,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@datastax/astra-db-ts": "^2.3.0",
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/jwt": "^1.4.2",
     "@elysiajs/static": "^1.4.10",
