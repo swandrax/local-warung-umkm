@@ -60,7 +60,10 @@ export class GroqProvider implements AIProvider {
   private groq: Groq | null = null;
   private model: string;
 
-  constructor(apiKey = process.env.GROQ_API_KEY, model = 'llama-3.3-70b-versatile') {
+  constructor(
+    apiKey = process.env.GROQ_API_KEY,
+    model = process.env.GROQ_MODEL || 'openai/gpt-oss-120b'
+  ) {
     this.model = model;
     if (apiKey && apiKey !== 'mock') {
       this.groq = new Groq({ apiKey });
