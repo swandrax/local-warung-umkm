@@ -14,6 +14,7 @@ import { adminRoutes } from './routes/admin';
 import { chatRoutes } from './routes/chat';
 import { apiUsageRoutes } from './routes/api-usage';
 import { vectorSearchRoutes } from './routes/vector-search';
+import { healthRoutes } from './routes/health';
 
 const app = new Elysia()
   .use(staticPlugin({
@@ -24,6 +25,7 @@ const app = new Elysia()
     origin: 'http://localhost:5173', // Vite default port
     credentials: true,
   }))
+  .use(healthRoutes)
   .group('/api', (app) =>
     app
       .use(authRoutes)
@@ -39,6 +41,7 @@ const app = new Elysia()
       .use(chatRoutes)
       .use(apiUsageRoutes)
       .use(vectorSearchRoutes)
+      .use(healthRoutes)
   )
   .onError(({ code, error, set }) => {
     console.error('Server error:', error);

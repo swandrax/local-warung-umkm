@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { cache } from './infrastructure/cache/valkey';
+import { cache } from './infrastructure/cache/redis';
 import { rateLimiter } from './infrastructure/rate-limit/token-bucket';
 import { AIGateway, CircuitState } from './ai/gateway';
 import { AgentRouter, AgentType } from './ai/router';

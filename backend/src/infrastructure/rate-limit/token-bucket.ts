@@ -1,4 +1,4 @@
-import { cache } from '../cache/valkey';
+import { cache } from '../cache/redis';
 
 export interface RateLimitResult {
   allowed: boolean;

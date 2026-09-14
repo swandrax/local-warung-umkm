@@ -13,6 +13,7 @@
   import MitraDashboard from './routes/MitraDashboard.svelte';
   import PartnershipDashboard from './routes/PartnershipDashboard.svelte';
   import Admin from './routes/Admin.svelte';
+  import AIChatWidget from './lib/components/AIChatWidget.svelte';
 
   export let url = '';
 
@@ -60,25 +61,26 @@
   <Navbar />
   <main class="container" use:links>
     <div style="padding-top: 1.5rem; padding-bottom: 3rem;">
-      <Route path="/" component={Home} />
-      <Route path="/login" component={Login} />
-      <Route path="/products" component={Products} />
+      <Route path="/"><Home /></Route>
+      <Route path="/login"><Login /></Route>
+      <Route path="/products"><Products /></Route>
       <Route path="/products/:id" let:params>
         <ProductDetail id={params.id} />
       </Route>
-      <Route path="/profile" component={Profile} />
-      <Route path="/partnerships" component={PartnershipPublic} />
+      <Route path="/profile"><Profile /></Route>
+      <Route path="/partnerships"><PartnershipPublic /></Route>
       <Route path="/partnerships/:id" let:params>
         <PartnershipDetail id={params.id} />
       </Route>
-      <Route path="/mitra-dashboard" component={MitraDashboard} />
-      <Route path="/partnership-dashboard" component={PartnershipDashboard} />
+      <Route path="/mitra-dashboard"><MitraDashboard /></Route>
+      <Route path="/partnership-dashboard"><PartnershipDashboard /></Route>
       <Route path="/mitra/:id" let:params>
         <MitraPublic id={params.id} />
       </Route>
-      <Route path="/admin" component={Admin} />
+      <Route path="/admin"><Admin /></Route>
     </div>
   </main>
+  <AIChatWidget />
 </Router>
 
 <style>

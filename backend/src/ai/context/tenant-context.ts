@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { mitraProfiles, products } from '../../db/schema';
-import { cache } from '../../infrastructure/cache/valkey';
+import { cache } from '../../infrastructure/cache/redis';
 import type { TenantBusinessContext } from '../providers';
 
 export class TenantContextService {

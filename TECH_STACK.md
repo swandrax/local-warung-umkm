@@ -47,7 +47,9 @@ Dokumen ini membedah secara komprehensif pemilihan tumpukan teknologi (*technolo
 | **Framework Server** | [ElysiaJS](https://elysiajs.com/) | Express / Fastify / NestJS | Throughput HTTP sangat tinggi (hingga 3-4x Express), integrasi type-safety end-to-end via TypeBox. |
 | **ORM / Data Layer** | [Drizzle ORM](https://orm.drizzle.team/) | Prisma / TypeORM | Mendekati SQL murni, ukuran paket mini (*zero-dependency runtime*), tanpa proses background engine berat. |
 | **Basis Data Relasional** | [Neon PostgreSQL](https://neon.tech/) | SQLite / MySQL | Serverless transaction pooler, auto-suspend, integrasi Neon Auth JWT, branching CI/CD. |
+| **Distributed Cache Layer** | [Redis](https://redis.io/) | Valkey / Memcached | In-memory key-value caching, distributed token-bucket rate limiting, context store. |
 | **Basis Data Vektor / AI** | [DataStax Astra DB](https://astra.datastax.com/) | Pinecone / Qdrant | Vector embedding 1536-dim, cosine similarity search, serverless AWS Data API. |
+| **Reverse Proxy & Load Balancer** | [Nginx Alpine](https://nginx.org/) | Traefik / HAProxy | Upstream clustering `least_conn`, SSL termination, gzip compression, SPA fallback. |
 | **AI Inference Provider** | [Groq Cloud](https://groq.com/) | OpenAI / Anthropic | LPU ultra-low latency inference (~150-200ms per token output), model `openai/gpt-oss-120b`. |
 | **Framework Antarmuka** | [Svelte 5](https://svelte.dev/) | React / Vue / Angular | Tidak menggunakan Virtual DOM, kompilasi langsung ke Vanilla JS, reaktivitas granular via *runes*, ukuran bundle sangat kecil. |
 | **Build Tooling** | [Vite](https://vitejs.dev/) | Webpack / Rollup murni | Hot Module Replacement (HMR) berbasis ES Module asli, waktu *cold start* pembangunan di bawah 300ms. |

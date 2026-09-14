@@ -1,0 +1,78 @@
+services:
+  # 1. Distributed In-Memory Cache & Token Bucket Store
+  redis:
+    image: redis:7-alpine
+    container_name: warung-redis
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # 2. Clustered Backend Node 1 (Bun Elysia)
+  backend-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: warung-backend-1
+    restart: always
+    env_file: ./backend/.env
+    environment:
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/app/uploads
+
+  # 3. Clustered Backend Node 2 (Horizontal Scaling Instance)
+  backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: warung-backend-2
+    restart: always
+    env_file: ./backend/.env
+    environment:
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads-data:/app/uploads
+
+  # 4. Frontend SPA Web App (Svelte 5 Production Build)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: warung-frontend
+    restart: always
+
+  # 5. Reverse Proxy & Upstream Load Balancer
+  load-balancer:
+    image: nginx:1.27-alpine
+    container_name: warung-load-balancer
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend-1
+      - backend-2
+      - frontend
+
+volumes:
+  redis-data:
+  uploads-data:
