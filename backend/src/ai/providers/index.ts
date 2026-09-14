@@ -35,8 +35,15 @@ export interface AIContext {
   imageUrl?: string; // Optional image URL for vision/multimodal models (e.g. Llama-4-Scout)
 }
 
+export interface AgentAction {
+  type: 'REPLY_INFO' | 'SHOW_PRODUCTS' | 'ORDER_TRACK' | 'ESCALATE_HUMAN' | 'ASK_CLARIFICATION' | 'CUSTOM_ACTION' | string;
+  payload?: Record<string, unknown>;
+}
+
 export interface AIResponse {
   message: string;
+  thinking?: string;
+  action?: AgentAction;
   tokensUsed?: number;
   toolCalls?: any[];
 }
@@ -97,7 +104,8 @@ INSTRUKSI WAJIB:
       return this.simulateLocalResponse(context, userPrompt);
     }
 
-    const systemPrompt = this.buildSystemPrompt(context);
+    const { CognitiveReasoningEngine } = require('../reasoning/cognitive-agent');
+    const systemPrompt = CognitiveReasoningEngine.buildCognitivePrompt(context);
 
     // Prompt Isolation: user message is strictly passed as 'user' role
     const messages: Groq.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -112,15 +120,19 @@ INSTRUKSI WAJIB:
     const completion = await this.groq.chat.completions.create({
       model: this.model,
       messages,
-      temperature: 0.3, // Low temperature for factual precision
-      max_tokens: 500,
+      temperature: 0.2, // Low temperature for consistent logical reasoning
+      max_tokens: 700,
     });
 
     const reply = completion.choices[0]?.message?.content || 'Maaf, saya tidak dapat memproses jawaban saat ini.';
     const totalTokens = completion.usage?.total_tokens || 0;
 
+    const cognitive = CognitiveReasoningEngine.parseCognitiveOutput(reply);
+
     return {
-      message: reply,
+      message: cognitive.response,
+      thinking: cognitive.thinking,
+      action: cognitive.action,
       tokensUsed: totalTokens,
     };
   }
@@ -173,6 +185,11 @@ INSTRUKSI WAJIB:
 
     if (q.includes('jam') || q.includes('buka') || q.includes('tutup')) {
       return {
+        thinking: `Pengguna menanyakan jadwal operasional toko. Mengecek data jam operasional untuk ${storeName}.`,
+        action: {
+          type: 'REPLY_INFO',
+          payload: { category: 'operating_hours', hours: info?.operatingHours },
+        },
         message: `Halo! ${storeName} beroperasi sesuai jadwal operasional kami. Silakan berkunjung atau hubungi kami langsung di ${info?.phone || 'kontak kami'}.`,
         tokensUsed: 25,
       };
@@ -180,13 +197,21 @@ INSTRUKSI WAJIB:
 
     if (q.includes('harga') || q.includes('stok') || q.includes('produk') || q.includes('menu')) {
       if (info?.availableProducts?.length) {
-        const topProducts = info.availableProducts.slice(0, 3).map(p => `• ${p.name} - Rp ${p.price.toLocaleString('id-ID')}`).join('\n');
+        const topProducts = info.availableProducts.slice(0, 3);
+        const topList = topProducts.map(p => `• ${p.name} - Rp ${p.price.toLocaleString('id-ID')}`).join('\n');
         return {
-          message: `Berikut beberapa produk pilihan di ${storeName}:\n${topProducts}\n\nAda produk tertentu yang ingin Anda tanyakan?`,
+          thinking: `Pengguna mencari informasi produk/katalog. Memfilter ${topProducts.length} produk unggulan dari database toko.`,
+          action: {
+            type: 'SHOW_PRODUCTS',
+            payload: { products: topProducts },
+          },
+          message: `Berikut beberapa produk pilihan di ${storeName}:\n${topList}\n\nAda produk tertentu yang ingin Anda tanyakan?`,
           tokensUsed: 40,
         };
       }
       return {
+        thinking: `Katalog produk kosong atau belum dipublikasikan oleh mitra.`,
+        action: { type: 'REPLY_INFO' },
         message: `Terima kasih atas ketertarikan Anda. Katalog produk di ${storeName} sedang kami perbarui.`,
         tokensUsed: 20,
       };
@@ -194,12 +219,19 @@ INSTRUKSI WAJIB:
 
     if (q.includes('alamat') || q.includes('lokasi') || q.includes('dimana')) {
       return {
+        thinking: `Pengguna menanyakan lokasi fisik warung/toko. Mengambil data alamat mitra.`,
+        action: {
+          type: 'REPLY_INFO',
+          payload: { address: info?.address },
+        },
         message: `${storeName} beralamat di: ${info?.address || 'Alamat toko lokal'}. Kami tunggu kedatangan Anda!`,
         tokensUsed: 25,
       };
     }
 
     return {
+      thinking: `Input umum/salam dari pelanggan. Mengidentifikasi kebutuhan transaksi atau konsultasi produk.`,
+      action: { type: 'ASK_CLARIFICATION' },
       message: `Halo! Selamat datang di ${storeName}. Ada yang bisa saya bantu terkait produk, pemesanan, atau lokasi kami?`,
       tokensUsed: 30,
     };

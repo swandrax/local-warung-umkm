@@ -155,6 +155,8 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         data: {
           conversationId,
           message: result.message,
+          thinking: result.thinking,
+          action: result.action,
           agentUsed: result.agentUsed,
           tokensUsed: result.tokensUsed,
           latencyMs,
