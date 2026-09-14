@@ -32,6 +32,7 @@ export interface AIContext {
   conversationId: string;
   tenantInfo?: TenantBusinessContext;
   windowedHistory: Message[];
+  imageUrl?: string; // Optional image URL for vision/multimodal models (e.g. Llama-4-Scout)
 }
 
 export interface AIResponse {
@@ -45,6 +46,8 @@ export interface AIProvider {
   stream(context: AIContext, prompt: string, tools?: Tool[]): AsyncGenerator<string, void, unknown>;
   healthCheck(): Promise<boolean>;
 }
+
+export { VLLMProvider } from './vllm';
 
 export class GroqProvider implements AIProvider {
   private groq: Groq | null = null;
@@ -201,4 +204,17 @@ INSTRUKSI WAJIB:
       tokensUsed: 30,
     };
   }
+}
+
+/**
+ * Factory function to instantiate the active AI Provider based on AI_PROVIDER env
+ * Supported: 'groq' | 'vllm'
+ */
+export function createAIProvider(): AIProvider {
+  const providerType = (process.env.AI_PROVIDER || 'groq').toLowerCase();
+  if (providerType === 'vllm') {
+    const { VLLMProvider } = require('./vllm');
+    return new VLLMProvider();
+  }
+  return new GroqProvider();
 }

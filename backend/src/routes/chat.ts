@@ -7,17 +7,17 @@ import { taskQueue, TaskPriority, BackpressureError } from '../infrastructure/qu
 import { workerPool } from '../infrastructure/queue/worker-pool';
 import { tenantContextService } from '../ai/context/tenant-context';
 import { AgentRouter } from '../ai/router';
-import { GroqProvider, type Message } from '../ai/providers';
+import { createAIProvider, type Message } from '../ai/providers';
 
-// Singleton router initialized with GroqProvider
-const groqProvider = new GroqProvider();
-const agentRouter = new AgentRouter(groqProvider);
+// Singleton router initialized with active AI Provider (Groq or vLLM)
+const activeProvider = createAIProvider();
+const agentRouter = new AgentRouter(activeProvider);
 
 export const chatRoutes = new Elysia({ prefix: '/chat' })
   .post(
     '/',
     async ({ body, set, headers }) => {
-      const { tenantId, message, conversationId: existingConvId } = body;
+      const { tenantId, message, conversationId: existingConvId, imageUrl } = body;
       const clientIp = headers['x-forwarded-for'] || '127.0.0.1';
 
       // 1. Rate Limiting Check (Token Bucket per tenant and per IP)
@@ -105,6 +105,7 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         conversationId,
         tenantInfo,
         windowedHistory,
+        imageUrl,
       };
 
       let result;
@@ -165,6 +166,7 @@ export const chatRoutes = new Elysia({ prefix: '/chat' })
         tenantId: t.String({ minLength: 1 }),
         message: t.String({ minLength: 1, maxLength: 1000 }),
         conversationId: t.Optional(t.String()),
+        imageUrl: t.Optional(t.String()),
       }),
     }
   );
